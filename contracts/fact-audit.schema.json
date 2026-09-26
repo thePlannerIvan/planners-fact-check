@@ -1,0 +1,291 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fact-audit/1.0.0",
+  "title": "Fact Audit",
+  "description": "一次事实核查的产出：默认通过，只列可疑项；每条都必须有裁定，否则交付门不放行。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "artifact",
+    "source_index",
+    "suspects"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "fact-audit/1.0.0"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "description": "被检查的成品。哈希用于回答『上次核查之后它改了没有』",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "source_index": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path"
+      ],
+      "description": "这次核查依据的来源索引（source-index/2.0.0）",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "index_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "**索引文件自身**的 index_sha256（即 source-index 里那个字段的原值），不是被引用来源的哈希；取不到就留 null —— 不要拿原生文件哈希顶替它。"
+        },
+        "read_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "读它的时间（替代哈希三方互绑的记录）"
+        }
+      }
+    },
+    "checker": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "跑这次核查的执行者（子代理 id / 模型名）。独立上下文是这道检查唯一的强制力来源，所以必须记下来"
+    },
+    "checked_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blind_spots": {
+      "type": "array",
+      "description": "从来源索引抄过来的盲区。**没读到的部分必须出现在这里**，否则下游会把它当全量",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scope",
+          "reason",
+          "impact"
+        ],
+        "properties": {
+          "source_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "impact": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "suspects": {
+      "type": "array",
+      "description": "**只有可疑项**。默认通过的意思是：这一条不对，才会出现在这里",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "surface",
+          "kind",
+          "class",
+          "verdict"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "surface": {
+            "type": "string",
+            "minLength": 1,
+            "description": "成品里的原句（不改写）"
+          },
+          "location": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "page": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "line": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "section": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "kind": {
+            "enum": [
+              "drifting",
+              "miscalc",
+              "mismatch",
+              "unsourced",
+              "weakened",
+              "strengthened"
+            ],
+            "description": "漂移 / 算错 / 错配（主体·时间·单位）/ 无来源 / 被削弱 / 被加强"
+          },
+          "class": {
+            "enum": [
+              "quoted",
+              "derived",
+              "planned",
+              "non_factual"
+            ],
+            "description": "决定裁定方式：回原文比对 / 重算 / 只登记 / 不算事实"
+          },
+          "finding": {
+            "type": "string",
+            "description": "哪里不对。裁定为 correct 时写为什么没问题"
+          },
+          "evidence": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "source_id",
+              "anchor"
+            ],
+            "properties": {
+              "source_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "anchor": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "value"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "value": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "excerpt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "命中的原文片段"
+              },
+              "sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "check": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "description": "class=derived 时把算式摊开：分子／分母／口径",
+            "properties": {
+              "numerator": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "denominator": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "recomputed": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "agrees": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "verdict": {
+            "enum": [
+              "pending",
+              "confirmed",
+              "correct",
+              "accepted_with_caveat",
+              "no_source"
+            ],
+            "description": "pending 就是没裁定 —— 交付门会因为它不放行"
+          },
+          "decided_by": {
+            "enum": [
+              "agent",
+              "human",
+              null
+            ]
+          },
+          "note": {
+            "type": "string",
+            "description": "confirmed 时要写『改什么』；accepted_with_caveat 时要写人接受的理由"
+          }
+        }
+      }
+    }
+  }
+}

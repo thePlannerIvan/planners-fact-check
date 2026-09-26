@@ -1,0 +1,35 @@
+# Internal engineering surfaces: never publish
+_internal/
+.scratch/
+
+# Project and customer artifacts
+output/
+outputs/
+dist/
+build/
+coverage/
+*.tmp
+
+# Fact-check working directory (surface.json / fact-audit.json)
+work/
+
+# Secrets and local configuration
+.env
+.env.*
+*.pem
+*.key
+*.token
+
+# Runtime and caches
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+*.log
+.DS_Store
+
+# Generated client files
+*.pptx
+*.keynote
