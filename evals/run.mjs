@@ -21,8 +21,10 @@ const VALIDATE = join(ROOT, 'scripts', 'validate-fact-audit.mjs');
 const sha = b => createHash('sha256').update(b).digest('hex');
 
 let failed = 0;
-const ok = m => console.log(`  ✓ ${m}`);
-const bad = m => { failed++; console.log(`  ✗ ${m}`); };
+// 断言条数自己数，不靠文档复述（文档复述过的数字已经漂过）。
+let assertions = 0;
+const ok = m => { assertions++; console.log(`  ✓ ${m}`); };
+const bad = m => { failed++; assertions++; console.log(`  ✗ ${m}`); };
 const run = (script, args) => {
   const r = spawnSync(process.execPath, [script, ...args], { encoding: 'utf8' });
   let parsed = null;
@@ -177,5 +179,5 @@ console.log('\n[一致性与盲区]');
 }
 
 rmSync(dir, { recursive: true, force: true });
-console.log(failed ? `\n${failed} 条失败` : '\n全部通过（1 组枚举 + 4 条门 + 2 条一致性）');
+console.log(failed ? `\n${assertions} 条断言，${failed} 条失败` : `\n全部通过（${assertions} 条断言：枚举 3 + 门 5 + 一致性与盲区 2）`);
 process.exit(failed ? 1 : 0);
