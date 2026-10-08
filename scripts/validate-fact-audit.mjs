@@ -60,14 +60,14 @@ function validateNode(node, schema, path) {
 }
 
 // ---------- 2. 一致性与交付门 ----------
-function checkConsistency(doc, auditDir) {
+function checkConsistency(doc, auditDir, gate) {
   // 成品改了没有
   const artifactPath = resolve(auditDir, doc.artifact.path);
   if (existsSync(artifactPath)) {
     if (sha256File(artifactPath) !== doc.artifact.sha256)
       err('artifact_changed', `成品在核查之后被改过：${doc.artifact.path} —— 这份核查结论不适用于它现在的样子`);
   } else {
-    warn('artifact_absent', `成品不在磁盘上：${doc.artifact.path}（离线校验？）`);
+    (gate ? err : warn)('artifact_absent', `成品不在磁盘上：${doc.artifact.path}`);
   }
 
   // 盲区必须原样带过来
@@ -75,19 +75,26 @@ function checkConsistency(doc, auditDir) {
   if (existsSync(srcPath)) {
     try {
       const src = JSON.parse(readFileSync(srcPath, 'utf8'));
-      const expected = (src.blind_spots || []).map(b => `${b.scope}|${b.reason}`);
-      const got = new Set((doc.blind_spots || []).map(b => `${b.scope}|${b.reason}`));
+      if (src.contract_version !== 'source-index/2.0.0' || !Array.isArray(src.sources)) {
+        err('source_index_invalid', '来源索引必须为 source-index/2.0.0 且包含 sources');
+      }
+      if (doc.source_index.index_sha256 && src.index_sha256 !== doc.source_index.index_sha256) {
+        err('source_index_changed', '来源索引版本已变化，需要续检');
+      }
+      const identity = b => JSON.stringify([b.source_id ?? null, b.scope, b.reason, b.impact]);
+      const expected = (src.blind_spots || []).map(identity);
+      const got = new Set((doc.blind_spots || []).map(identity));
       for (const key of expected) {
         if (!got.has(key)) {
-          const [scope] = key.split('|');
+          const [, scope] = JSON.parse(key);
           err('blind_spot_not_carried', `来源索引里的盲区没有抄进本次核查：${scope} —— 下游会把它当全量`);
         }
       }
     } catch (e) {
-      warn('source_index_unreadable', `来源索引读不了（${e.message}）：${doc.source_index.path}`);
+      (gate ? err : warn)('source_index_unreadable', `来源索引读不了（${e.message}）：${doc.source_index.path}`);
     }
   } else {
-    warn('source_index_absent', `来源索引不在磁盘上：${doc.source_index.path}`);
+    (gate ? err : warn)('source_index_absent', `来源索引不在磁盘上：${doc.source_index.path}`);
   }
 }
 
@@ -98,6 +105,8 @@ function checkGate(doc) {
     if (s.verdict === 'confirmed' && isBlank(s.note)) err('confirmed_without_note', `${where} 判为要改，但没写改什么`);
     if (s.verdict === 'accepted_with_caveat' && s.decided_by !== 'human')
       err('caveat_not_human', `${where} 带保留地接受必须由人裁定（decided_by=${s.decided_by ?? 'null'}）`);
+    if (s.verdict === 'accepted_with_caveat' && isBlank(s.note))
+      err('caveat_without_note', `${where} 缺少用户接受边界的理由`);
     if (s.verdict === 'confirmed' && !s.evidence && s.class !== 'planned' && s.class !== 'non_factual')
       warn('confirmed_without_evidence', `${where} 判为要改，但没有指向来源证据`);
     if (s.class === 'derived' && !s.check) warn('derived_without_check', `${where} 是算出来的，但没把分子/分母/口径摊开`);
@@ -129,7 +138,7 @@ function main() {
   validateNode(doc, JSON.parse(readFileSync(SCHEMA_PATH, 'utf8')), '$');
   if (errors.length) return finish(text, gate, doc);
 
-  checkConsistency(doc, dirname(abs));
+  checkConsistency(doc, dirname(abs), gate);
   if (gate) checkGate(doc);
   else {
     const pending = (doc.suspects || []).filter(s => s.verdict === 'pending').length;

@@ -178,6 +178,26 @@ console.log('\n[一致性与盲区]');
   else bad(`盲区丢失没被拦住：${JSON.stringify(codes(r2))}`);
 }
 
+console.log('\n[续检接口]');
+{
+  const datePath = tmp('date.md', '研究于2025年发布。\n');
+  const map = run(ENUM, [datePath]);
+  if (map.out?.candidates.find(c => c.surface === '2025')?.class_hint === 'quoted') ok('事实年份不排除为非事实');
+  else bad('事实年份被误排除');
+  for (const [field, code] of [['artifact', 'artifact_absent'], ['source_index', 'source_index_absent']]) {
+    const document = auditFor(datePath);
+    document[field].path = 'missing-file';
+    const result = run(VALIDATE, [tmp(`missing-${field}.json`, JSON.stringify(document)), '--gate']);
+    if (result.code !== 0 && codes(result).includes(code)) ok(`${field} 缺失不能通过交付门`);
+    else bad(`${field} 缺失被放过`);
+  }
+  const changedBlind = auditFor(datePath);
+  changedBlind.blind_spots[0].source_id = 'src-other';
+  changedBlind.blind_spots[0].impact = '不同影响';
+  const result = run(VALIDATE, [tmp('changed-blind.json', JSON.stringify(changedBlind)), '--gate']);
+  if (result.code !== 0 && codes(result).includes('blind_spot_not_carried')) ok('盲区来源身份与影响必须保留');
+  else bad('相同范围掩盖了盲区来源变化');
+}
 rmSync(dir, { recursive: true, force: true });
-console.log(failed ? `\n${assertions} 条断言，${failed} 条失败` : `\n全部通过（${assertions} 条断言：枚举 3 + 门 5 + 一致性与盲区 2）`);
+console.log(failed ? `\n${assertions} 条断言，${failed} 条失败` : `\n全部通过（${assertions} 条断言）`);
 process.exit(failed ? 1 : 0);

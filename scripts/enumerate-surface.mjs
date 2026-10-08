@@ -72,7 +72,7 @@ function main() {
       // 判 class 要看这个数字**周围**的话，不是整行 —— 整行会让同一行的年份被"同比"污染成 derived
       const win = line.slice(Math.max(0, m.index - 24), m.index + m[0].length + 24);
       const isYear = /^(19|20)\d{2}$/.test(m[0]);
-      const classHint = isYear ? 'non_factual'
+      const classHint = isYear ? 'quoted'
         : PLANNED.test(win) ? 'planned'
         : DERIVED.test(win) ? 'derived'
         : 'quoted';
