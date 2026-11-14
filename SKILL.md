@@ -1,6 +1,6 @@
 ---
 name: planners-fact-check
-description: 对照成品与原始资料，检查事实漂移、算错和主体时间单位错配，只输出可疑项。供 planners-bypage 在完整逐页稿审阅前调用，也可独立核对稿件与资料。
+description: 对照成品与原始资料，检查事实漂移、算错和主体时间单位错配，只输出可疑项。三个调用时点：`planners-bypage` 在完整逐页稿审阅前、`planners-proposal-system` 在判断与主线阶段、`planners-ppt-hell` 在改过内容之后；也可独立核对任一手稿与资料。
 ---
 
 # Planners Fact Check
