@@ -3,67 +3,59 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-2563eb)](LICENSE)
 [![Contract](https://img.shields.io/badge/contract-fact--audit%2F1.0.0-0f766e)](contracts/fact-audit.schema.json)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-339933)](https://nodejs.org)
-[![Runtime](https://img.shields.io/badge/runtime-plain%20Node-6b7280)](references/architecture.md)
 
-事实核查：拿一份成品和它的原始资料，用**最小的代价**回答两件事 —— 成品相对来源**漂移**了吗，加工过程**算错写错**了吗。输出只有可疑项的短清单，**默认通过**；有未裁定的疑点就不许交付。
+**用独立的“冷眼旁观者”检查写好的稿子、PPT 或报告：数字算错了吗？引用的原话断章取义了吗？把 A 品牌的数据安到 B 品牌上了吗？**
 
 > 作者：阿祖不看 TVC（小红书同名）· [demyth.info](https://demyth.info) · [Lawyif@163.com](mailto:Lawyif@163.com)
 
-## 它解决什么
+---
 
-成品写完到交付之间，最容易静默出错的不是文笔，而是事实位移：数字被改、限定条件掉了、分母没了、原话被转述却不标注、结论被悄悄加强；或者加工过程本身出错 —— 算错、主体／时间／单位错配、把 A 的数据安到 B 头上。
+## 一句话看懂：它帮你做什么
 
-它**不产出内容**，也**不判断「这个解释成不成立」** —— 那是 claim 审计的事。界线很清楚：**claim 审计问解释，事实核查问事实。**
+文章、PPT 或方案写完准备发出之前，最隐蔽、代价最大的错往往不是文笔不好，而是**事实悄无声息地跑偏了**：
 
-## 核心工作流
+- 引用的百分比被“顺手四舍五入”或者丢了分母；
+- 原本只有特定人群或特定年份成立的限定条件，改稿改着改着被删掉了；
+- 从原始资料算出来的同比增长、差值自己算错了，或者把竞品 A 的指标张冠李戴给了产品 B。
 
-最小代价只要三样，多一样都不要：
+更关键的是：**让写稿的同一个对话自己查自己往往没用**，因为模型还带着刚写完时的脑补惯性。**Planners Fact Check** 在干净的独立上下文里，只拿「成品 + 原始资料」对照核查，**默认只交出一份“可疑点短清单”**，有未处理的疑点就不放行交付：
 
-1. **能读的来源** —— 读不到就查不了，所以先看 `source-index` 的 `blind_spots[]`，把「没读到的部分」摊在明面上；
-2. **一份核对地图** —— 成品里哪些东西会被读者当事实（不是逐数字建账）；
-3. **一道不许悄悄放过的门** —— 有未裁定的疑点，就不许交付。
-
-```bash
-# 1. 枚举核对地图（从成品里抓出会被当事实的东西）
-node scripts/enumerate-surface.mjs <成品> --out work/surface.json
-
-# 2. 模型／子代理对照：读成品 + 来源索引 + surface.json，逐条给裁定
-#    写 work/fact-audit.json（契约见 contracts/fact-audit.schema.json）
-
-# 3. 门：未裁定就不许交付
-node scripts/validate-fact-audit.mjs work/fact-audit.json --gate
+```text
+写完的文稿 / PPT 文案 + 原始参考资料
+  → 1. 抓出会被读者当事实的句子（引用 / 衍生计算 / 方案设定 / 非事实）
+  → 2. 独立上下文回读原文核对，计算类数字列出分子分母重算一遍
+  → 3. 对照盲区账本（明确哪些资料根本没读到，不瞎写“已验证”）
+  → 输出：仅含可疑项的 fact-audit 清单 + 交付放行门（--gate）
 ```
 
-三类事实分开，只为裁定方式不同：`quoted` 引用来的**回原文比对**（语义一致即可）；`derived` 算出来的**把分子／分母／口径写出来重算一遍**；`planned` 方案数字不核真伪，只登记「这是方案设定」；`non_factual`（列表序号、页码、型号）不算事实。
+**所属生态位（质检门）**：在工作流里被 [Planners Proposal System](https://github.com/thePlannerIvan/Planners-Proposal-System)、[Planners Bypage](https://github.com/thePlannerIvan/planners-bypage) 和 [Planners PPT Hell](https://github.com/thePlannerIvan/planners-ppt-hell) 按需唤醒做交付前核查；**也完全支持你随时单独调用**，拿一份成稿和几份参考文件当场揪出事实错误。
 
-**读不到就去把能力找来 —— 不要停在「无法核实」。** 来源是 PDF、扫描件、加密表格或旧版 Office 格式时，允许并且要求你自己去找、去装能完成这一步的工具（`pip install pypdf`、`brew install poppler`、系统自带能力…），并写下用什么方法读的。只有在真的试过仍读不到时才登记成盲区，而且要点名试过什么。
+---
 
-**强制力从哪来（唯一不能省的设计）**：核查必须由**独立上下文**跑 —— 只看「成品 + 来源」，**不看作者的推理过程**。模型自查等于没查。
+## 它查什么、不查什么（与别的工具边界）
 
-## 适合 / 不适合
+| 你想检查什么 | 该不该用我 | 核心做法 |
+| --- | --- | --- |
+| 数字、引用、时间、主体、分母、限定条件有没有写错/算错 | **用我 (`planners-fact-check`)** | 4 类事实分治：`quoted` 回原文核对；`derived` 重算核验；`planned` 标记为未来方案设定；`non_factual` 跳过 |
+| 错别字、标点、病句、语感、全网新闻真伪查证 | 改用 [`editor`](https://github.com/thePlannerIvan/editor) | `editor` 管语言校对与红绿修订页；`fact-check` 专攻**手稿相对于给定原始资料**是否漂移 |
+| 判断“这套商业策略逻辑到底高不高明” | **不适用** | 我只管“事实忠实”，不管“观点好不好” |
 
-适合：
+### 它怎么保证不自欺欺人？
 
-- 一份写完的稿子／方案／报告，要交付前过一道事实关；
-- 数字、引用、表格、衍生公式需要回到来源核对；
-- 需要一份**只有可疑项**的短清单，而不是几百条全量确认；
-- 作为别的 Skill 的交付前门（独立上下文子代理调用）。
+1. **读不到绝不硬编**：遇到 PDF、扫描件、旧版 `.xls/.doc` 等难读文件，会先尝试寻找并调用解析/OCR 工具；实在读不到，必须诚实登记进 `blind_spots[]`，明说“这一段没读到，下面结论无法背书”。
+2. **绿灯不等于“完全没错”**：`--gate` 放行只说明每条疑点都被人类或修正动作裁定过（没有 `pending` 悬而未决）；若里面还标着 `confirmed`（确认有错），必须先把稿件改掉才能最终交付。
 
-不适合：
+---
 
-- 想让它判断解释、论证或叙事是否成立（那是 claim 审计）；
-- 想让它逐数字建账、逐条独立归属核对 —— 长上下文能整段对照后，逐条确认的边际收益远小于成本；
-- 来源完全读不到、也不允许装抽取工具 —— 那只能得到一份盲区清单，得不到核查结论。
+## 快速开始与安装
 
-## 安装
-
-通用 Skills CLI：
+### 1. Codex / Claude Code 用户
 
 ```bash
 npx skills add https://github.com/thePlannerIvan/planners-fact-check --skill planners-fact-check
 ```
 
-也可直接放入 Codex 或 Claude 的 Skill 目录：
+或克隆到本地 Skill 目录：
 
 ```bash
 git clone https://github.com/thePlannerIvan/planners-fact-check.git ~/.codex/skills/planners-fact-check
@@ -71,31 +63,48 @@ git clone https://github.com/thePlannerIvan/planners-fact-check.git ~/.codex/ski
 git clone https://github.com/thePlannerIvan/planners-fact-check.git ~/.claude/skills/planners-fact-check
 ```
 
-环境要求：**Node.js 20+**，零第三方依赖。**不依赖 DSH** —— 它是普通 CLI；子代理只是「谁来跑它」的实现细节，不影响结果对不对。
+DSH 用户若已安装 `Planners Proposal System`、`planners-bypage` 或 `planners-ppt-hell`，核查会在相应阶段自动衔接；需要独立使用时在对话中点名 `$planners-fact-check` 即可。
 
-```bash
-node evals/run.mjs   # 1 组枚举 + 4 条门 + 2 条一致性
-```
-
-## 典型 prompt
-
-可以由用户直接用：
+### 2. 直接这样问它
 
 ```text
-查一下这份稿和资料对不对。
-核对一下这些数字。
-有没有跟原始数据跑偏？
+用 $planners-fact-check 核对一下这份方案终稿和文件夹里的几份原始报告：
+有没有数字算错、口径偷换、或者引用跟原文对不上的地方？只给我列出可疑点。
 ```
 
-也可以被 `planners-bypage`、`planners-proposal-system`、`planners-quali-box`、`planners-quanti-box` 以子代理形式在**独立上下文**里调用。
+### 真实依赖
 
-## 交付门怎么读
+- **环境要求**：Node.js 20+，零第三方包。**不依赖 DSH**，可在任何运行时使用。
+- **配套契约**：读取 [`planners-source-index`](https://github.com/thePlannerIvan/planners-source-index) 规范的来源索引文件（了解哪些来源已读、哪些是盲区）。
 
-**门只回答「都裁定过」，不回答「没问题」。** `--gate` 放行 = 没有 `pending`；如果输出里还有 `confirmed`，那些是**待改项** —— 改完才算可交付。不要把「放行」读成「这份稿没问题」。
+---
 
-`--gate` 在这几种情况下 FAIL：有 `verdict: pending` 的疑点；`verdict: confirmed` 却没写 `note`；`verdict: accepted_with_caveat` 但不是人裁定的（`decided_by` 必须是 `human`）。
+<details>
+<summary>开发者说明：命令行用法、目录结构与回归测试（普通用户可忽略）</summary>
 
-## 目录结构
+### 最小 CLI 工作流
+
+```bash
+# 1. 从成品抓出会被读者当事实的条目
+node scripts/enumerate-surface.mjs <成品文件> --out work/surface.json
+
+# 2. 在独立上下文里回读成品 + source-index.json + surface.json，产出 work/fact-audit.json
+
+# 3. 交付门检查（存在 pending / confirmed 无说明 / 非人类 accepted_with_caveat 即阻断）
+node scripts/validate-fact-audit.mjs work/fact-audit.json --gate
+```
+
+### 三家自动调用时点（与 `SKILL.md` 对齐）
+
+- `planners-proposal-system`：在判断与主线成型阶段按需调用
+- `planners-bypage`：在完整逐页稿交付审阅前调用
+- `planners-ppt-hell`：在修改了页面实质内容之后调用（仅微调视觉排版时不重复触发）
+
+### 自检与目录结构
+
+```bash
+node evals/run.mjs
+```
 
 ```text
 planners-fact-check/
@@ -104,31 +113,27 @@ planners-fact-check/
 ├── contracts/
 │   └── fact-audit.schema.json          # 产出契约（fact-audit/1.0.0）
 ├── scripts/
-│   ├── enumerate-surface.mjs           # 从成品枚举「会被当事实的东西」
-│   └── validate-fact-audit.mjs         # 唯一校验器 + 交付门
+│   ├── enumerate-surface.mjs           # 枚举事实候选面
+│   └── validate-fact-audit.mjs         # 唯一校验器 + --gate 交付门
 ├── evals/
-│   └── run.mjs                         # 漂移样例（改数字／去分母／加强结论／无来源）与干净样例
+│   └── run.mjs                         # 漂移样例与干净样例回归测试
 └── references/
-    └── architecture.md                 # module 表、缝、与 claim 审计的边界
+    └── architecture.md                 # 调用缝与边界说明
 ```
 
-## 品牌与署名边界
+</details>
 
-来源信息可出现在 Skill 文档、流程 HTML、审阅页面、验证页面和开发者工作面中；**不默认写入最终客户交付物**。疑点清单本身是工作产物，默认不带任何作者品牌字段。
+---
 
-`Planners Fact Check` 与 `阿祖不看 TVC` 用于标识本项目及其来源。开源许可证授予代码使用权，不自动授予项目名或作者名的商标使用权。修改版请标注 fork，不要暗示作者背书。详见 [TRADEMARK.md](TRADEMARK.md)。
+## 品牌边界、开源协议与商业合作
 
-## 开源协议和商业入口
-
-本项目以 **AGPL-3.0** 发布 —— 可以商业使用；修改版与通过网络提供的服务需公开对应源码。若需要闭源授权、私有部署、企业事实审计流程定制或私有增强模块：
-
-- Email：`Lawyif@163.com`
-- Website：[demyth.info](https://demyth.info)
-
-详见 [COMMERCIAL.md](COMMERCIAL.md) · 归属声明见 [NOTICE](NOTICE)。
+- **许可协议**：以 [AGPL-3.0-only](LICENSE) 发布，可商业使用，修改版或通过网络提供的服务须公开对应源码。
+- **署名边界**：可疑清单默认不写入任何作者品牌字段；开源署名见 [NOTICE](NOTICE)，名称使用边界见 [TRADEMARK.md](TRADEMARK.md)。
+- **商业支持**：私有部署、企业审计流定制或闭源授权，请联系 `Lawyif@163.com` 或访问 [demyth.info](https://demyth.info)，详见 [COMMERCIAL.md](COMMERCIAL.md)。
 
 ## 相关项目
 
-- [Planners Source Index](https://github.com/thePlannerIvan/planners-source-index) —— 本模组的输入契约，按 `anchors[]` 回源
-- [Planners Review Core](https://github.com/thePlannerIvan/planners-review-core) —— 人工审阅的公共接缝
-- [Planners Bypage](https://github.com/thePlannerIvan/planners-bypage) —— 多源资料 → 逐页 PPT 内容包
+- [Planners Source Index](https://github.com/thePlannerIvan/planners-source-index) —— 输入端来源索引与盲区账本
+- [Planners Bypage](https://github.com/thePlannerIvan/planners-bypage) —— 多源资料 → 逐页 PPT 文案
+- [Planners Proposal System](https://github.com/thePlannerIvan/Planners-Proposal-System) —— 策略共创与 Storyline 工作台
+- [Planners PPT Hell](https://github.com/thePlannerIvan/planners-ppt-hell) —— 可编辑 PPT 与视频静态画面制作
