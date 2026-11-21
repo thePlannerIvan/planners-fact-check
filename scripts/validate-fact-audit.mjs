@@ -75,8 +75,8 @@ function checkConsistency(doc, auditDir, gate) {
   if (existsSync(srcPath)) {
     try {
       const src = JSON.parse(readFileSync(srcPath, 'utf8'));
-      if (src.contract_version !== 'source-index/2.0.0' || !Array.isArray(src.sources)) {
-        err('source_index_invalid', '来源索引必须为 source-index/2.0.0 且包含 sources');
+      if (!['source-index/2.1.0', 'source-index/2.0.0'].includes(src.contract_version) || !Array.isArray(src.sources)) {
+        err('source_index_invalid', '来源索引必须为 source-index/2.1.0（或兼容 2.0.0）且包含 sources');
       }
       if (doc.source_index.index_sha256 && src.index_sha256 !== doc.source_index.index_sha256) {
         err('source_index_changed', '来源索引版本已变化，需要续检');

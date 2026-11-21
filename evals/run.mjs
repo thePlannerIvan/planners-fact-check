@@ -71,13 +71,14 @@ void srcPath;
 
 // 一份来源索引（含一条盲区，用来验「盲区必须带过来」）
 const sourceIndex = {
-  contract_version: 'source-index/2.0.0',
+  contract_version: 'source-index/2.1.0',
   source_root: '.',
   index_sha256: null,
   sources: [{
     source_id: 'src-survey',
     origin: { path: 'source.md', sha256: sha(Buffer.from(SOURCE_MD)) },
     kind: 'document',
+    provenance: 'primary',
     role: '消费者调研原始记录',
     audit_layer: { mode: 'source_file', path: null, sha256: null, derived_from_sha256: null, snapshot_sha256: null, method: null, anchor_marks: null },
     coverage: { status: 'partial', scope: '只读了正文，附录未读', reason: null, impact_if_incomplete: '附录里的分渠道数据无法核对', counts: null },
@@ -86,6 +87,12 @@ const sourceIndex = {
   blind_spots: [{ source_id: 'src-survey', scope: '附录', reason: '未纳入本轮阅读', impact: '分渠道结论无法核对' }],
 };
 const srcIdxPath = tmp('source-index.json', JSON.stringify(sourceIndex, null, 2));
+
+const sourceIndexV20 = {
+  ...sourceIndex,
+  contract_version: 'source-index/2.0.0',
+};
+const srcIdx20Path = tmp('source-index-20.json', JSON.stringify(sourceIndexV20, null, 2));
 
 const auditFor = (artifactPath, over = {}) => ({
   contract_version: 'fact-audit/1.0.0',
@@ -159,8 +166,16 @@ console.log('\n[交付门：必须拦得住]');
     ],
   }), null, 2));
   const r4 = run(VALIDATE, [p4, '--gate']);
-  if (r4.code === 0) ok('全部裁定过 → 放行');
+  if (r4.code === 0) ok('全部裁定过（source-index/2.1.0）→ 放行');
   else bad(`该放行却没放行：${JSON.stringify(codes(r4))} ${JSON.stringify(r4.out?.errors)}`);
+
+  const p20 = tmp('a-ok-20.json', JSON.stringify(auditFor(driftPath, {
+    source_index: { path: 'source-index-20.json', index_sha256: null, read_at: '2026-09-26' },
+    suspects: [],
+  }), null, 2));
+  const r20 = run(VALIDATE, [p20, '--gate']);
+  if (r20.code === 0) ok('向下兼容 source-index/2.0.0 → 放行');
+  else bad(`2.0.0 兼容失败：${JSON.stringify(codes(r20))}`);
 }
 
 // ---------- 3. 一致性与盲区 ----------

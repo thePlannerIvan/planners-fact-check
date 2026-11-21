@@ -28,7 +28,7 @@
   → 输出：仅含可疑项的 fact-audit 清单 + 交付放行门（--gate）
 ```
 
-**所属生态位（质检门）**：在工作流里被 [Planners Proposal System](https://github.com/thePlannerIvan/Planners-Proposal-System)、[Planners Bypage](https://github.com/thePlannerIvan/planners-bypage) 和 [Planners PPT Hell](https://github.com/thePlannerIvan/planners-ppt-hell) 按需唤醒做交付前核查；**也完全支持你随时单独调用**，拿一份成稿和几份参考文件当场揪出事实错误。
+**所属生态位（质检门）**：在工作流里被 [Planners Proposal](https://github.com/thePlannerIvan/Planners-Proposal-System)、[Planners Bypage](https://github.com/thePlannerIvan/planners-bypage) 和 [Planners PPT Hell](https://github.com/thePlannerIvan/planners-ppt-hell) 按需唤醒做交付前核查；**也完全支持你随时单独调用**，拿一份成稿和几份参考文件当场揪出事实错误。
 
 ---
 
@@ -63,7 +63,7 @@ git clone https://github.com/thePlannerIvan/planners-fact-check.git ~/.codex/ski
 git clone https://github.com/thePlannerIvan/planners-fact-check.git ~/.claude/skills/planners-fact-check
 ```
 
-DSH 用户若已安装 `Planners Proposal System`、`planners-bypage` 或 `planners-ppt-hell`，核查会在相应阶段自动衔接；需要独立使用时在对话中点名 `$planners-fact-check` 即可。
+DSH 用户若已安装 `planners-proposal`、`planners-bypage` 或 `planners-ppt-hell`，核查会在相应阶段自动衔接；需要独立使用时在对话中点名 `$planners-fact-check` 即可。
 
 ### 2. 直接这样问它
 
@@ -96,7 +96,7 @@ node scripts/validate-fact-audit.mjs work/fact-audit.json --gate
 
 ### 三家自动调用时点（与 `SKILL.md` 对齐）
 
-- `planners-proposal-system`：在判断与主线成型阶段按需调用
+- `planners-proposal`：在判断与主线成型阶段按需调用
 - `planners-bypage`：在完整逐页稿交付审阅前调用
 - `planners-ppt-hell`：在修改了页面实质内容之后调用（仅微调视觉排版时不重复触发）
 
@@ -135,5 +135,5 @@ planners-fact-check/
 
 - [Planners Source Index](https://github.com/thePlannerIvan/planners-source-index) —— 输入端来源索引与盲区账本
 - [Planners Bypage](https://github.com/thePlannerIvan/planners-bypage) —— 多源资料 → 逐页 PPT 文案
-- [Planners Proposal System](https://github.com/thePlannerIvan/Planners-Proposal-System) —— 策略共创与 Storyline 工作台
+- [Planners Proposal](https://github.com/thePlannerIvan/Planners-Proposal-System) —— 策略共创与 Storyline 工作台
 - [Planners PPT Hell](https://github.com/thePlannerIvan/planners-ppt-hell) —— 可编辑 PPT 与视频静态画面制作
